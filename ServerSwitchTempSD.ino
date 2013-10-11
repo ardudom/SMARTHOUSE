@@ -140,11 +140,11 @@ String floatToString(float value, byte precision){
 void SetLEDs(void)
 {
     // RELE 1 (pin 6)
-    if (StrContains(HTTP_req, "RELE=1")) {
+    if (StrContains(HTTP_req, "RELE1=1")) {
         RELE_state[0] = 1; 
         digitalWrite(6, HIGH);
     }
-    else if (StrContains(HTTP_req, "RELE=0")) {
+    else if (StrContains(HTTP_req, "RELE1=0")) {
         RELE_state[0] = 0;  
         digitalWrite(6, LOW);
     }
@@ -179,24 +179,24 @@ void XML_response(EthernetClient cl)
         cl.print(temp_val2);
         cl.println("</analog>");
     // RELE1
-    cl.print("<RELE1>");
+    cl.print("<RELE>");
     if (RELE_state[0]) {
         cl.print("on");
     }
     else {
         cl.print("off");
     }
-    cl.println("</RELE1>");
+    cl.println("</RELE>");
     
     // RELE2
-    cl.print("<RELE2>");
-    if (RELE_state[0]) {
+    cl.print("<RELE>");
+    if (RELE_state[1]) {
         cl.print("on");
     }
     else {
         cl.print("off");
     }
-    cl.println("</RELE2>");
+    cl.println("</RELE>");
     
     cl.print("</inputs>");
 }
