@@ -4,31 +4,24 @@
 #include <SD.h>
 #include <DallasTemperature.h>
 
-
-#define ONE_WIRE_BUS 9
+#define ONE_WIRE_BUS 9 //pin for DS1820
 #define TEMPERATURE_PRECISION 9
-// size of buffer used to capture HTTP requests
-#define REQ_BUF_SZ   60
+#define REQ_BUF_SZ 60 // size of buffer used to capture HTTP requests
 
-// MAC address from Ethernet shield sticker under board
-byte mac[] = { 0x2E, 0x3D, 0xBE, 0xEF, 0xFE, 0xED };
-IPAddress ip(192, 168, 0, 33); // IP address, may need to change depending on network
-EthernetServer server(80);  // create a server at port 80
-File webFile;               // the web page file on the SD card
+byte mac[] = { 0x2E, 0x3D, 0xBE, 0xEF, 0xFE, 0xED }; // MAC address from Ethernet
+IPAddress ip(192, 168, 0, 33); // IP address
+EthernetServer server(80);  // Port 80
+File webFile;               // Page file on the SD card
 char HTTP_req[REQ_BUF_SZ] = {0}; // buffered HTTP request stored as null terminated string
 char req_index = 0;              // index into HTTP_req buffer
 boolean RELE_state[2] = {0}; // stores the states of the LEDs
-float temp1, temp2;
+float temp1, temp2; // Temperature degree from DS1820 
 unsigned long lastUpdate = 0;
-// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
-
 // Pass our oneWire reference to Dallas Temperature. 
 DallasTemperature sensors(&oneWire);
-
 // arrays to hold device addresses
 DeviceAddress insideThermometer, outsideThermometer;
-
 
 void setup()
 {
@@ -37,8 +30,6 @@ void setup()
     digitalWrite(10, HIGH);
     
     Serial.begin(9600);       // for debugging
-    
-    // initialize SD card
     Serial.println("Initializing SD card...");
     if (!SD.begin(4)) {
         Serial.println("ERROR - SD card initialization failed!");
@@ -51,16 +42,13 @@ void setup()
         return;  // can't find index file
     }
     Serial.println("SUCCESS - Found index.htm file.");
-   
-   
-    pinMode(5, OUTPUT);  //RELE_2
-    pinMode(6, OUTPUT);  //RELE_1
     
+    pinMode(5, OUTPUT);  //Pin for Second relay
+    pinMode(6, OUTPUT);  //Pin for First relay
     
     Ethernet.begin(mac, ip);  // initialize Ethernet device
     server.begin();           // start to listen for clients
-    
-   sensors.begin();
+    sensors.begin();          //start to listen for temp sensors
 
   if (!sensors.getAddress(insideThermometer, 0)) Serial.println("Unable to find address for Device 0"); 
   if (!sensors.getAddress(outsideThermometer, 1)) Serial.println("Unable to find address for Device 1"); 
@@ -68,11 +56,10 @@ void setup()
   // set the resolution to 9 bit
   sensors.setResolution(insideThermometer, TEMPERATURE_PRECISION);
   sensors.setResolution(outsideThermometer, TEMPERATURE_PRECISION);
-   
 }
 
 void loop() {
-    updateTemperature();
+    updateTemperature(); //update temp function
     EthernetClient client = server.available();  // try to get client
 
     if (client) {  // got client?
