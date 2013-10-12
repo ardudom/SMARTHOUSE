@@ -10,15 +10,15 @@
 
 byte mac[] = { 0x2E, 0x3D, 0xBE, 0xEF, 0xFE, 0xED }; // MAC address from Ethernet
 IPAddress ip(192, 168, 0, 33); // IP address
-EthernetServer server(80);  // Port 80
-File webFile;               // Page file on the SD card
+EthernetServer server(80); // Port 80
+File webFile; // Page file on the SD card
 char HTTP_req[REQ_BUF_SZ] = {0}; // buffered HTTP request stored as null terminated string
-char req_index = 0;              // index into HTTP_req buffer
+char req_index = 0; // index into HTTP_req buffer
 boolean RELE_state[2] = {0}; // stores the states of the LEDs
-float temp1, temp2; // Temperature degree from DS1820 
+float temp1, temp2; // Temperature degree from DS1820
 unsigned long lastUpdate = 0;
 OneWire oneWire(ONE_WIRE_BUS);
-// Pass our oneWire reference to Dallas Temperature. 
+// Pass our oneWire reference to Dallas Temperature.
 DallasTemperature sensors(&oneWire);
 // arrays to hold device addresses
 DeviceAddress insideThermometer, outsideThermometer;
@@ -29,29 +29,29 @@ void setup()
     pinMode(10, OUTPUT);
     digitalWrite(10, HIGH);
     
-    Serial.begin(9600);       // for debugging
+    Serial.begin(9600); // for debugging
     Serial.println("Initializing SD card...");
     if (!SD.begin(4)) {
         Serial.println("ERROR - SD card initialization failed!");
-        return;    // init failed
+        return; // init failed
     }
     Serial.println("SUCCESS - SD card initialized.");
     // check for index.htm file
     if (!SD.exists("index.htm")) {
         Serial.println("ERROR - Can't find index.htm file!");
-        return;  // can't find index file
+        return; // can't find index file
     }
     Serial.println("SUCCESS - Found index.htm file.");
     
-    pinMode(5, OUTPUT);  //Pin for Second relay
-    pinMode(6, OUTPUT);  //Pin for First relay
+    pinMode(5, OUTPUT); //Pin for Second relay
+    pinMode(6, OUTPUT); //Pin for First relay
     
-    Ethernet.begin(mac, ip);  // initialize Ethernet device
-    server.begin();           // start to listen for clients
-    sensors.begin();          //start to listen for temp sensors
+    Ethernet.begin(mac, ip); // initialize Ethernet device
+    server.begin(); // start to listen for clients
+    sensors.begin(); //start to listen for temp sensors
 
-  if (!sensors.getAddress(insideThermometer, 0)) Serial.println("Unable to find address for Device 0"); 
-  if (!sensors.getAddress(outsideThermometer, 1)) Serial.println("Unable to find address for Device 1"); 
+  if (!sensors.getAddress(insideThermometer, 0)) Serial.println("Unable to find address for Device 0");
+  if (!sensors.getAddress(outsideThermometer, 1)) Serial.println("Unable to find address for Device 1");
 
   // set the resolution to 9 bit
   sensors.setResolution(insideThermometer, TEMPERATURE_PRECISION);
@@ -60,34 +60,34 @@ void setup()
 
 void loop() {
     updateTemperature(); //update temp function
-    EthernetClient client = server.available();  // try to get client
+    EthernetClient client = server.available(); // try to get client
 
-    if (client) {  // got client?
+    if (client) { // got client?
         boolean currentLineIsBlank = true;
         while (client.connected()) {
-            if (client.available()) {   
+            if (client.available()) {
                 char c = client.read(); // leave last element in array as 0 to null terminate string (REQ_BUF_SZ - 1)
                 if (req_index < (REQ_BUF_SZ - 1)) {
-                    HTTP_req[req_index] = c;         
+                    HTTP_req[req_index] = c;
                     req_index++;
-                } 
+                }
                 if (c == '\n' && currentLineIsBlank) {
-                    client.println("HTTP/1.1 200 OK"); 
+                    client.println("HTTP/1.1 200 OK");
                     if (StrContains(HTTP_req, "ajax_inputs")) {
                         client.println("Content-Type: text/xml");
                         client.println("Connection: keep-alive");
                         client.println();
-                        SetLEDs(); 
+                        SetLEDs();
                         XML_response(client);
                     }
-                    else {  
+                    else {
                         client.println("Content-Type: text/html");
                         client.println("Connection: keep-alive");
                         client.println();
-                        webFile = SD.open("index.htm");   
+                        webFile = SD.open("index.htm");
                         if (webFile) {
                             while(webFile.available()) {
-                                client.write(webFile.read()); 
+                                client.write(webFile.read());
                             }
                             webFile.close();
                         }
@@ -98,14 +98,14 @@ void loop() {
                 }
                 if (c == '\n') {
                     currentLineIsBlank = true;
-                } 
+                }
                 else if (c != '\r') {
                     currentLineIsBlank = false;
                 }
             } // end if (client.available())
         } // end while (client.connected())
-        delay(1);      // give the web browser time to receive the data
-        client.stop(); 
+        delay(1); // give the web browser time to receive the data
+        client.stop();
     } // end if (client)
 }
 
@@ -127,7 +127,7 @@ String floatToString(float value, byte precision){
   unsigned int frac;
   if(intVal >= 0){
     frac = (value - intVal) * precision;
-  } 
+  }
   else {
     frac = (intVal - value) * precision;
   }
@@ -141,27 +141,27 @@ void SetLEDs(void)
 {
     // RELE 1 (pin 6)
     if (StrContains(HTTP_req, "RELE1=1")) {
-        RELE_state[0] = 1; 
+        RELE_state[0] = 1;
         digitalWrite(6, HIGH);
     }
     else if (StrContains(HTTP_req, "RELE1=0")) {
-        RELE_state[0] = 0;  
+        RELE_state[0] = 0;
         digitalWrite(6, LOW);
     }
     // RELE 2 (pin 5)
     if (StrContains(HTTP_req, "RELE2=1")) {
-        RELE_state[0] = 1;  
+        RELE_state[1] = 1;
         digitalWrite(5, HIGH);
     }
     else if (StrContains(HTTP_req, "RELE2=0")) {
-        RELE_state[0] = 0;
+        RELE_state[1] = 0;
         digitalWrite(5, LOW);
     }
 }
 
 void XML_response(EthernetClient cl)
 {
-    String temp_val1, temp_val2;             
+    String temp_val1, temp_val2;
     
     if(temp1 != -100.0){
       temp_val1 = floatToString(temp1, 100);
@@ -179,31 +179,29 @@ void XML_response(EthernetClient cl)
         cl.print(temp_val2);
         cl.println("</analog>");
     // RELE1
-    cl.print("<RELE>");
+    cl.print("<RELE1>");
     if (RELE_state[0]) {
         cl.print("on");
     }
     else {
         cl.print("off");
     }
-    cl.println("</RELE>");
+    cl.println("</RELE1>");
     
     // RELE2
-    cl.print("<RELE>");
+    cl.print("<RELE2>");
     if (RELE_state[1]) {
         cl.print("on");
     }
     else {
         cl.print("off");
     }
-    cl.println("</RELE>");
-    
+    cl.println("</RELE2>");
     cl.print("</inputs>");
 }
 
 // sets every element of str to 0 (clears array)
-void StrClear(char *str, char length)
-{
+void StrClear(char *str, char length) {
     for (int i = 0; i < length; i++) {
         str[i] = 0;
     }
@@ -211,14 +209,12 @@ void StrClear(char *str, char length)
 
 // returns 1 if string found
 // returns 0 if string not found
-char StrContains(char *str, char *sfind)
-{
+char StrContains(char *str, char *sfind) {
     char found = 0;
     char index = 0;
     char len;
-
-    len = strlen(str);
     
+    len = strlen(str);
     if (strlen(sfind) > len) {
         return 0;
     }
@@ -228,12 +224,10 @@ char StrContains(char *str, char *sfind)
             if (strlen(sfind) == found) {
                 return 1;
             }
-        }
-        else {
+        } else {
             found = 0;
-        }
+        } 
         index++;
     }
-
     return 0;
 }
